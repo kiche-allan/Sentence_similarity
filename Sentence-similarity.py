@@ -1,15 +1,26 @@
-import torch #This line imports the torch library, which is a popular open-source machine learning framework used for tasks like deep learning.
-from sentence_transformers import SentenceTransformer #This line imports the SentenceTransformer class from the sentence_transformers library. SentenceTransformer is a library that provides sentence and text embeddings, which are numerical representations of sentences or texts that capture their semantic meaning.
+from flask import Flask, request
+from sentence_transformers import SentenceTransformer
+from pydantic import BaseModel
+from transformers import pipeline
 
-# Load the pre-trained model
-model = SentenceTransformer('bert-base-nli-mean-tokens') #This line creates an instance of the SentenceTransformer class and assigns it to the variable model. The 'bert-base-nli-mean-tokens' argument specifies the pre-trained model to be used. In this case, it is using the BERT model with a mean pooling strategy to generate sentence embeddings.
 
-# Encode sentences into embeddings
-def encode_sentences(sentences):
-    sentence_embeddings = model.encode(sentences)
-    return sentence_embeddings
+app = Flask(__name__)
 
-# Example usage
-sentences = ['I love pizza', 'Pizza is my favorite food']
-embeddings = encode_sentences(sentences)
-print(embeddings)
+model = SentenceTransformer('sentence-transformers/stsb-roberta-large')
+
+class Query(BaseModel):
+    question_one: str
+
+@app.route('/extract', methods=['GET', 'POST'])
+def extract():
+    if request.method == 'POST':
+        query = request.get_json()
+        text = query['question_one']
+        ner = pipeline("ner", model="samrawal/bert-base-uncased_clinical-ner", tokenizer="samrawal/bert-base-uncased_clinical-ner")
+        output = ner(text)
+        filtered_data = [d for d in output if not d['word'].startswith('#')]
+        disease_list = [d['word'] for d in filtered_data if d['entity'] == 'B-problem' or d['entity'] == 'I-problem']
+        return str(disease_list) + "           " + str(output)
+
+if __name__ == '__main__':
+    app.run()
