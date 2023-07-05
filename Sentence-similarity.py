@@ -3,7 +3,6 @@ from sentence_transformers import SentenceTransformer
 from pydantic import BaseModel
 from transformers import pipeline
 
-
 app = Flask(__name__)
 
 model = SentenceTransformer('sentence-transformers/stsb-roberta-large')
